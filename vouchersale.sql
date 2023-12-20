@@ -4,12 +4,14 @@ DROP PROCEDURE IF EXISTS `nodedb`.`vouchersale`;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `nodedb`.`vouchersale`(
   IN `Vorderid` INT,
   IN `Vinputdiscount` DOUBLE,
+  IN `Vtotalor` DOUBLE,
   IN `Vcreatby` VARCHAR(45)  CHARSET utf8mb4 COLLATE utf8mb4_persian_ci,
   IN `Vmonth` INT,
   IN `VNumberSale` VARCHAR(45)  CHARSET utf8mb4 COLLATE utf8mb4_persian_ci
 )
 NOT DETERMINISTIC CONTAINS SQL SQL SECURITY DEFINER
 	BEGIN
+  DECLARE VSUMAmount,VQtyinv DOUBLE DEFAULT 0.0 ;
   DECLARE VSaleOrderID,VDLIDCcommission,VDLIDD,Vcashamound,Vvoucherid,Vfiscalyear,Vbusinessunitid,Vfund,VOPid,VDLIDC INT;
   DECLARE Veventdate DATETIME ;
   DECLARE Vformatted VARCHAR(20);
@@ -19,7 +21,7 @@ NOT DETERMINISTIC CONTAINS SQL SQL SECURITY DEFINER
   DECLARE VVoucherTypeID INT DEFAULT 4;
   DECLARE VVoucherTypeIDcost INT DEFAULT 5;
   DECLARE VVTypeIDcommission INT DEFAULT 9;
-  DECLARE VQty,Vunitprice,Vdiscount,Vtax,Vcost,VAmount,VAmountLine,Vtotaltax DOUBLE DEFAULT 0 ;
+  DECLARE VQty,Vunitprice,Vdiscount,Vtax,Vcost,VAmount,VAmountLine,Vtotaltax DOUBLE DEFAULT 0.0 ;
   DECLARE VdescriptionItem,Vdes,VdesComm,VProductname,VProductcode,Vunitname VARCHAR(255)  CHARSET utf8mb4 COLLATE utf8mb4_persian_ci ;
   DECLARE done INT DEFAULT FALSE;
 
@@ -130,11 +132,11 @@ loopSALEITEM: LOOP
       (Vvoucherid,VSLIDs1,VDLIDD,VAmount,VdescriptionItem,Veventdate),
       (Vvoucherid,VSLIDs0,VDLIDC,VAmount,VdescriptionItem,Veventdate);
   END IF;
-  SELECT `Qty` INTO DECQTY FROM `golrokh`.`vw_qty` WHERE `ProductID`=VDLIDC AND `fiscalyear`=Vfiscalyear ;
-  IF (DECQTY IS NOT NULL AND DECQTY >= 1) THEN
-     SELECT SUM(`Amount`) INTO DECSUMAmount FROM `golrokh1402`.`voucheritem`
+  SELECT `Qty` INTO VQtyinv FROM `golrokh`.`vw_qty` WHERE `ProductID`=VDLIDC AND `fiscalyear`=Vfiscalyear ;
+  IF (VQtyinv IS NOT NULL AND VQtyinv >= 1) THEN
+     SELECT SUM(`Amount`) INTO VSUMAmount FROM `golrokh1402`.`voucheritem`
                                       WHERE `DLID` =VDLIDC AND `slid`=".VSLIDcost1." ;
-     SET Vcost=DECSUMAmount/DECQTY;
+     SET Vcost=VSUMAmount/VQtyinv;
   ELSE
      SET Vcost=VStandardCost;
   END IF;
@@ -197,7 +199,7 @@ INSERT INTO `golrokh1402`.`voucheritem`
 END IF;
 
 INSERT INTO `golrokh`.`transactions`( `description`, `DLID`, `Amount`, `type`, `numoftype`, `fiscalyear`, `createdBy`) VALUES
-  (Vdestr,VDLIDD,DECTOTALOR,2,Vorderid,Vfiscalyear,Vcreatby);
+  (Vdestr,VDLIDD,Vtotalor,2,Vorderid,Vfiscalyear,Vcreatby);
 
 IF Vcashamound>0 THEN
 SET VdesVoucher=CONCAT('دریافت نقدی بابت فاکتور ',VNumberSale,' از ',Vnameofcustomer);
