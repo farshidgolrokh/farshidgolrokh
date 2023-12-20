@@ -135,7 +135,7 @@ loopSALEITEM: LOOP
   SELECT Qty INTO VQtyinv FROM golrokh.vw_qty WHERE ProductID=VDLIDC AND fiscalyear=Vfiscalyear ;
   IF (VQtyinv IS NOT NULL AND VQtyinv >= 1) THEN
      SELECT SUM(Amount) INTO VSUMAmount FROM golrokh1402.voucheritem
-                                      WHERE DLID =VDLIDC AND slid=".VSLIDcost1." ;
+                                      WHERE DLID =VDLIDC AND slid=VSLIDcost1 ;
      SET Vcost=VSUMAmount/VQtyinv;
   ELSE
      SET Vcost=VStandardCost;
@@ -160,7 +160,7 @@ loopSALEITEM: LOOP
   INSERT INTO golrokh1402.voucheritem
   ( voucherid, slid, DLID, Amount, description,eventdate) VALUES
   (Vvoucherid,VSLIDcost1,VDLIDC,VAmount,VdescriptionItem,Veventdate),
-  (Vvoucherid,VSLIDcost0,VDLIDC.-VAmount,VdescriptionItem,Veventdate);
+  (Vvoucherid,VSLIDcost0,VDLIDC,-VAmount,VdescriptionItem,Veventdate);
 
   IF Vcommission>0 THEN
     SET VdescriptionItem=REPLACE(VdesComm,"{1}",Vcommission);
