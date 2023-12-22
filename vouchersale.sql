@@ -10,73 +10,19 @@ CREATE DEFINER=root@localhost PROCEDURE nodedb.vouchersale(
   IN VNumberSale VARCHAR(45)  CHARSET utf8mb4 COLLATE utf8mb4_persian_ci
 )
 NOT DETERMINISTIC CONTAINS SQL SQL SECURITY DEFINER
-	BEGIN
-  DECLARE VSUMAmount,VQtyinv DOUBLE DEFAULT 0.0 ;
-  DECLARE VSaleOrderID,VDLIDCcommission,VDLIDD,Vcashamound,Vvoucherid,Vfiscalyear,Vbusinessunitid,Vfund,VOPid,VDLIDC INT;
+BEGIN
+  DECLARE VDLIDt,VDLIDdis,VDLIDDcommission,VSaleOrderID,VDLIDCcommission,VDLIDD,Vcashamound,Vvoucherid,Vfiscalyear,Vbusinessunitid,Vfund,VOPid,VDLIDC INT DEFAULT 0 ;
   DECLARE Veventdate DATETIME ;
   DECLARE Vformatted VARCHAR(20);
-  DECLARE VdesVoucher,VdesVoucherItem,VdesVoucherItemcomm,Vdestr,Vnameofcustomer VARCHAR(255)  CHARSET utf8mb4 COLLATE utf8mb4_persian_ci;
-  DECLARE VDLIDt,VDLIDdis,VDLIDDcommission INT ;
-  DECLARE VSLIDs1,VSLIDs0,VSLIDcost1,VSLIDcost0,VSLIDcommission1,VSLIDcommission0,VSLIDsd1,VSLIDsd0,VSLIDsca1,VSLIDsca0,VSLIDst1,VSLIDst0 SMALLINT;
+  DECLARE VSLIDs1,VSLIDs0,VSLIDcost1,VSLIDcost0,VSLIDcommission1,VSLIDcommission0,VSLIDsd1,VSLIDsd0,VSLIDsca1,VSLIDsca0,VSLIDst1,VSLIDst0 SMALLINT DEFAULT 0 ;
   DECLARE VVoucherTypeID INT DEFAULT 4;
   DECLARE VVoucherTypeIDcost INT DEFAULT 5;
   DECLARE VVTypeIDcommission INT DEFAULT 9;
-  DECLARE VQty,Vunitprice,Vdiscount,Vtax,Vcost,VAmount,VAmountLine,Vtotaltax DOUBLE DEFAULT 0.0 ;
-  DECLARE VdescriptionItem,Vdes,VdesComm,VProductname,VProductcode,Vunitname VARCHAR(255)  CHARSET utf8mb4 COLLATE utf8mb4_persian_ci ;
+  DECLARE VQty,Vunitprice,Vdiscount,Vtax,Vcost,VAmount,VAmountLine,Vtotaltax,VSUMAmount,VQtyinv,Vcommission,VStandardCost DOUBLE DEFAULT 0.0 ;
+  DECLARE VdescriptionItem,Vdes,VdesComm,VProductname,VProductcode,Vunitname,VdesVoucher,VdesVoucherItem,VdesVoucherItemcomm,Vdestr,Vnameofcustomer VARCHAR(255)  CHARSET utf8mb4 COLLATE utf8mb4_persian_ci ;
   DECLARE done INT DEFAULT FALSE;
-
-  CREATE TEMPORARY TABLE nodedb.temp_saleorders AS
-      SELECT * from golrokh1402.vw_saleorders as saleorders Where saleorders.orderid = Vorderid;
-
-  SELECT id INTO VSaleOrderID FROM nodedb.temp_saleorders;
-  SELECT SaleEmployeeDLID INTO VDLIDCcommission FROM nodedb.temp_saleorders;
-  SELECT DLID INTO VDLIDD FROM nodedb.temp_saleorders;
-  SELECT DLname INTO Vnameofcustomer FROM nodedb.temp_saleorders;
-  SELECT cashamound INTO Vcashamound FROM nodedb.temp_saleorders;
-  SELECT fund INTO Vfund FROM nodedb.temp_saleorders;
-  SELECT orderdate INTO Veventdate FROM nodedb.temp_saleorders;
-  SELECT BusinessUnitID INTO Vbusinessunitid FROM nodedb.temp_saleorders;
-  SELECT fiscalyear INTO Vfiscalyear FROM nodedb.temp_saleorders;
-  DROP TEMPORARY TABLE nodedb.temp_saleorders;
-
-  CREATE TEMPORARY TABLE nodedb.temp_defaultdls AS
-      SELECT DLID FROM golrokh.defaultdls;
-
-  SELECT DLID INTO VDLIDt FROM temp_defaultdls WHERE id = 1;
-  SELECT DLID INTO VDLIDdis FROM temp_defaultdls WHERE id = 2;
-  SELECT DLID INTO VDLIDDcommission FROM temp_defaultdls WHERE id = 3;
-
-  DROP TEMPORARY TABLE nodedb.temp_defaultdls;
-
-  SET VdesVoucher=CONCAT('بابت فاکتور فروش شماره ',VNumberSale);
-  SET VdesVoucherItem=CONCAT('بابت فاکتور فروش شماره  : ',VNumberSale,' - ( {1} {2} {3} به قرار هر {2} :');
-  SET VdesVoucherItemcomm=CONCAT('بابت کمیسیون فاکتور فروش شماره  : ',VNumberSale,' - ( {1} % {2} ) ');
-
-  CREATE TEMPORARY TABLE nodedb.temp_voucherpattern AS
-    select  VoucherTypeID, IsDebit, slid from golrokh.voucherpattern;
-  SELECT slid INTO VSLIDs1 FROM temp_voucherpattern WHERE VoucherTypeID = 4 AND IsDebit=1 ;
-  SELECT slid INTO VSLIDs0 FROM temp_voucherpattern WHERE VoucherTypeID = 4 AND IsDebit=0 ;
-  SELECT slid INTO VSLIDcost1 FROM temp_voucherpattern WHERE VoucherTypeID = 5 AND IsDebit=1 ;
-  SELECT slid INTO VSLIDcost0 FROM temp_voucherpattern WHERE VoucherTypeID = 5 AND IsDebit=0 ;
-  SELECT slid INTO VSLIDcommission1 FROM temp_voucherpattern WHERE VoucherTypeID = 9 AND IsDebit=1 ;
-  SELECT slid INTO VSLIDcommission0 FROM temp_voucherpattern WHERE VoucherTypeID = 9 AND IsDebit=0 ;
-  SELECT slid INTO VSLIDsd1 FROM temp_voucherpattern WHERE VoucherTypeID = 18 AND IsDebit=1 ;
-  SELECT slid INTO VSLIDsd0 FROM temp_voucherpattern WHERE VoucherTypeID = 18 AND IsDebit=0 ;
-  SELECT slid INTO VSLIDsca1 FROM temp_voucherpattern WHERE VoucherTypeID = 10 AND IsDebit=1 ;
-  SELECT slid INTO VSLIDsca0 FROM temp_voucherpattern WHERE VoucherTypeID = 10 AND IsDebit=0 ;
-  SELECT slid INTO VSLIDst1 FROM temp_voucherpattern WHERE VoucherTypeID = 6 AND IsDebit=1 ;
-  SELECT slid INTO VSLIDst0 FROM temp_voucherpattern WHERE VoucherTypeID = 6 AND IsDebit=0 ;
-  DROP TEMPORARY TABLE nodedb.temp_voucherpattern;
-
-  INSERT INTO golrokh1402.voucher(description, BusinessUnitID, createdBy,month)
-     VALUES (VdesVoucher,Vbusinessunitid,Vcreatby,Vmonth);
-
-  SELECT id INTO Vvoucherid FROM golrokh1402.voucher WHERE createdBy=Vcreatby order by id DESC limit 1;
-  SET Vdestr=VdesVoucher;
-
-  UPDATE golrokh.orders SET statusID=5,VoucherID=Vvoucherid,modifiedOn=CURRENT_TIMESTAMP,modifiedBy=Vcreatby WHERE id=Vorderid ;
-
-  CREATE TEMPORARY TABLE nodedb.temp_producttransaction AS
+  
+  DECLARE cursorSALEITEM CURSOR FOR
   SELECT producttransaction.id,
                       producttransaction.ProductID,
                       producttransaction.Qty,
@@ -92,12 +38,60 @@ NOT DETERMINISTIC CONTAINS SQL SQL SECURITY DEFINER
                 Inner Join golrokh.vw_product as products on products.DLID=producttransaction.ProductID
                 Inner Join golrokh.units as units on units.id=products.unit
                         Where producttransaction.orderid = Vorderid;
-  DECLARE cursorSALEITEM CURSOR FOR
-   SELECT id,ProductID,Qty,unitprice,discount,tax,commission,code,productname,StandardCost,unitname
-                from nodedb.temp_producttransaction;
   DECLARE CONTINUE HANDLER
         FOR NOT FOUND SET done = TRUE;
 
+        CREATE TEMPORARY TABLE nodedb.temp_saleorders AS
+            SELECT * from golrokh1402.vw_saleorders as saleorders Where saleorders.orderid = Vorderid;
+        
+        SELECT id INTO VSaleOrderID FROM nodedb.temp_saleorders;
+        SELECT SaleEmployeeDLID INTO VDLIDCcommission FROM nodedb.temp_saleorders;
+        SELECT DLID INTO VDLIDD FROM nodedb.temp_saleorders;
+        SELECT DLname INTO Vnameofcustomer FROM nodedb.temp_saleorders;
+        SELECT cashamound INTO Vcashamound FROM nodedb.temp_saleorders;
+        SELECT fund INTO Vfund FROM nodedb.temp_saleorders;
+        SELECT orderdate INTO Veventdate FROM nodedb.temp_saleorders;
+        SELECT BusinessUnitID INTO Vbusinessunitid FROM nodedb.temp_saleorders;
+        SELECT fiscalyear INTO Vfiscalyear FROM nodedb.temp_saleorders;
+        DROP TEMPORARY TABLE nodedb.temp_saleorders;
+        
+        CREATE TEMPORARY TABLE nodedb.temp_defaultdls AS
+            SELECT DLID FROM golrokh.defaultdls;
+        
+        SELECT DLID INTO VDLIDt FROM nodedb.temp_defaultdls WHERE id = 1;
+        SELECT DLID INTO VDLIDdis FROM nodedb.temp_defaultdls WHERE id = 2;
+        SELECT DLID INTO VDLIDDcommission FROM nodedb.temp_defaultdls WHERE id = 3;
+        
+        DROP TEMPORARY TABLE nodedb.temp_defaultdls;
+        
+        SET VdesVoucher=CONCAT('بابت فاکتور فروش شماره ',VNumberSale);
+        SET VdesVoucherItem=CONCAT('بابت فاکتور فروش شماره  : ',VNumberSale,' - ( {1} {2} {3} به قرار هر {2} :');
+        SET VdesVoucherItemcomm=CONCAT('بابت کمیسیون فاکتور فروش شماره  : ',VNumberSale,' - ( {1} % {2} ) ');
+        
+        CREATE TEMPORARY TABLE nodedb.temp_voucherpattern AS
+          select  VoucherTypeID, IsDebit, slid from golrokh.voucherpattern;
+        SELECT slid INTO VSLIDs1 FROM nodedb.temp_voucherpattern WHERE VoucherTypeID = 4 AND IsDebit=1 ;
+        SELECT slid INTO VSLIDs0 FROM nodedb.temp_voucherpattern WHERE VoucherTypeID = 4 AND IsDebit=0 ;
+        SELECT slid INTO VSLIDcost1 FROM nodedb.temp_voucherpattern WHERE VoucherTypeID = 5 AND IsDebit=1 ;
+        SELECT slid INTO VSLIDcost0 FROM nodedb.temp_voucherpattern WHERE VoucherTypeID = 5 AND IsDebit=0 ;
+        SELECT slid INTO VSLIDcommission1 FROM nodedb.temp_voucherpattern WHERE VoucherTypeID = 9 AND IsDebit=1 ;
+        SELECT slid INTO VSLIDcommission0 FROM nodedb.temp_voucherpattern WHERE VoucherTypeID = 9 AND IsDebit=0 ;
+        SELECT slid INTO VSLIDsd1 FROM nodedb.temp_voucherpattern WHERE VoucherTypeID = 18 AND IsDebit=1 ;
+        SELECT slid INTO VSLIDsd0 FROM nodedb.temp_voucherpattern WHERE VoucherTypeID = 18 AND IsDebit=0 ;
+        SELECT slid INTO VSLIDsca1 FROM nodedb.temp_voucherpattern WHERE VoucherTypeID = 10 AND IsDebit=1 ;
+        SELECT slid INTO VSLIDsca0 FROM nodedb.temp_voucherpattern WHERE VoucherTypeID = 10 AND IsDebit=0 ;
+        SELECT slid INTO VSLIDst1 FROM nodedb.temp_voucherpattern WHERE VoucherTypeID = 6 AND IsDebit=1 ;
+        SELECT slid INTO VSLIDst0 FROM nodedb.temp_voucherpattern WHERE VoucherTypeID = 6 AND IsDebit=0 ;
+        DROP TEMPORARY TABLE nodedb.temp_voucherpattern;
+        
+        INSERT INTO golrokh1402.voucher(description, BusinessUnitID, createdBy,month)
+           VALUES (VdesVoucher,Vbusinessunitid,Vcreatby,Vmonth);
+        
+        SELECT id INTO Vvoucherid FROM golrokh1402.voucher WHERE createdBy=Vcreatby order by id DESC limit 1;
+        SET Vdestr=VdesVoucher;
+        
+        UPDATE golrokh.orders SET statusID=5,VoucherID=Vvoucherid,modifiedOn=CURRENT_TIMESTAMP,modifiedBy=Vcreatby WHERE id=Vorderid ;
+        
 OPEN cursorSALEITEM;
 
 loopSALEITEM: LOOP
@@ -110,21 +104,20 @@ loopSALEITEM: LOOP
    LEAVE loopSALEITEM;
  END IF;
 
- SET Vtotaltax+=Vtax;
- SET Vdiscount/=100 ;
+ SET Vtotaltax = Vtotaltax+Vtax;
+ SET Vdiscount=Vdiscount/100 ;
  SET Vcost=Vunitprice*(1-Vdiscount);
- SET VAmount=VQty*Vcost;VAmount=ROUND(VAmount,0);
+ SET VAmount=VQty*Vcost;SET VAmount=ROUND(VAmount,0);
  SET VAmountLine=VAmount;
  SET VProductname=CONCAT(VProductname,' (',VProductcode,')');
  SET VdescriptionItem='';
-   VdescriptionItem=REPLACE(VdesVoucherItem,"{1}",CAST(VQty AS VARCHAR));
-   VdescriptionItem=REPLACE(VdescriptionItem,"{2}",Vunitname);
-   VdescriptionItem=REPLACE(VdescriptionItem,"{3}",VProductname);
+ SET VdescriptionItem=REPLACE(VdesVoucherItem, "{1}", CONVERT(VQty, CHAR));
+ SET VdescriptionItem=REPLACE(VdescriptionItem,"{2}",Vunitname);
+ SET VdescriptionItem=REPLACE(VdescriptionItem,"{3}",VProductname);
  SET Vdes=VdescriptionItem;
- SET Vformatted=FORMAT(Vcost);
- SET VdescriptionItem=CONCAT(VdescriptionItem,' ',Vformatted,' ریال');
- SET Vformatted=FORMAT(Vcost);
+ SET Vformatted=FORMAT(Vcost,0);
  SET Vformatted=CONCAT(Vformatted,' ریال');
+ SET VdescriptionItem=CONCAT(VdescriptionItem,' ',Vformatted); 
  SET VdesComm=REPLACE(VdesVoucherItemcomm,"{2}",Vformatted);
  IF VAmount>0 THEN
    INSERT INTO golrokh1402.voucheritem
@@ -150,7 +143,7 @@ loopSALEITEM: LOOP
           cost= Vcost
    WHERE id = VOPid ;
 
-  SET Vformatted=FORMAT(Vcost);
+  SET Vformatted=FORMAT(Vcost,0);
 
   SET VdescriptionItem=CONCAT(Vdes,' ',Vformatted,' ریال');
 
@@ -181,8 +174,8 @@ END LOOP loopSALEITEM;
 CLOSE cursorSALEITEM;
 
 IF Vtotaltax>0 THEN
-VdesVoucher=CONCAT('بابت مالبات ارزش افزوده فاکتور فروش شماره ',VNumberSale);
-Vtotaltax=round(Vtotaltax,0);
+SET VdesVoucher=CONCAT('بابت مالبات ارزش افزوده فاکتور فروش شماره ',VNumberSale);
+SET Vtotaltax=round(Vtotaltax,0);
 INSERT INTO golrokh1402.voucheritem
   ( voucherid, slid, DLID, Amount, description,eventdate) VALUES
      (Vvoucherid,VSLIDst1,VDLIDD,Vtotaltax,VdesVoucher,Veventdate),
@@ -191,7 +184,7 @@ END IF;
 
 
 IF Vinputdiscount>0 THEN
-VdesVoucher=CONCAT('بابت تخفیف فاکتور فروش شماره ',VNumberSale);
+SET VdesVoucher=CONCAT('بابت تخفیف فاکتور فروش شماره ',VNumberSale);
 INSERT INTO golrokh1402.voucheritem
 ( voucherid, slid, DLID, Amount, description,eventdate) VALUES
   (Vvoucherid,VSLIDsd1,VDLIDdis,Vinputdiscount,VdesVoucher,Veventdate),
@@ -210,13 +203,14 @@ INSERT INTO golrokh1402.voucheritem
 INSERT INTO golrokh.transactions( description, DLID, Amount, type, numoftype, fiscalyear, createdBy)
 VALUES (VdesVoucher,VDLIDD,Vcashamound,6,0,Vfiscalyear,Vcreatby);
 ELSEIF Vcashamound<0 THEN
-SET VdesVoucher=CONCAT('عودت وجه بابت فاکتور ',VNumberSale,' به ',Vnameofcustomer);
-INSERT INTO golrokh1402.voucheritem
+  SET VdesVoucher=CONCAT('عودت وجه بابت فاکتور ',VNumberSale,' به ',Vnameofcustomer);
+  INSERT INTO golrokh1402.voucheritem
           ( voucherid, slid, DLID, Amount, description,eventdate) VALUES
              (Vvoucherid,VSLIDsca0,VDLIDD,-Vcashamound,VdesVoucher,Veventdate),
              (Vvoucherid,VSLIDsca1,Vfund,Vcashamound,VdesVoucher,Veventdate);
-INSERT INTO golrokh.transactions( description, DLID, Amount, type, numoftype, fiscalyear, createdBy)
-VALUES (VdesVoucher,VDLIDD,Vcashamound,6,0,Vfiscalyear,Vcreatby);
+  INSERT INTO golrokh.transactions( description, DLID, Amount, type, numoftype, fiscalyear, createdBy)
+  VALUES (VdesVoucher,VDLIDD,Vcashamound,6,0,Vfiscalyear,Vcreatby);
+END IF;
 COMMIT;
 END//
 DELIMITER;
